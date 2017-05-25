@@ -114,11 +114,6 @@ createTree2 b pl
     | isNothing (whoWins2 (Just b)) = (Node b (foldl (+) 0 (map (\(Node _ i _) -> i) (populateMTL b (pl)))) (populateMTL b (pl)))
     | otherwise = (Node b (scorify' (getBoards b posList (opponent pl))) [Nil])
 
-getBestMoveList :: [MTree] -> [(Board, Int)]
-getBestMoveList [] = []
-getBestMoveList [(Node b i [Nil])] = [(b, i)]
-getBestMoveList [(Node _ _ ((Node b i _):ms))] = (b, i):getBestMoveList ms
-
 getBestMoveList2 (Node _ _ n) = getBestMoveList2Helper n where
 	getBestMoveList2Helper [] = []
 	getBestMoveList2Helper ((Node b i _):ms) = (b, i):getBestMoveList2Helper ms
@@ -155,43 +150,4 @@ main = do
 	case args of
 		["-p"] -> gamify emptyBoard X
 		["-a"] -> gamify2 emptyBoard X
--- sumMyGame :: [MTree] -> [MTree]
--- sumMyGame [Nil] = []
--- sumMyGame [(Node _ j ((Node b i m):ms))] = Node b (foldl (+) 0 (getScore $ sumMyGame m) [Nil]) ++ [sumMyGame ms]
--- sumMyGame (m:ms) = sumMyGame [m] ++ sumMyGame ms
-
-
-
-
--- 1st Node (EMP BOARD) (0) [Nil]
--- 
-
-
---predict :: Board -> Player -> MTree
---predict board player = Node board (foldl (+) 0 (map getScore (guessPos board posList player))) (guessPos board posList player)
-
---traverseP (Node b i []) = ([Node ()])
---traverseP (Node b i nodes) = map traverseP nodes
-
-
-
--- traverseP [] _ = []
--- traverseP (m:ms) player = traverseP' m player ++ traverseP ms player where
--- 	traverseP' m p = traverseAndPredict m p
--- traverseAndPredict (Node b i []) player = [predict b player]
--- traverseAndPredict (Node b i (m:ms)) player = traverseP [m] player ++ traverseP ms player
---traverseAndPredict (m:ms) player = 
-
---tAndP [] _ = []
---tAndP (Node b i []
-
---traverseAndWin root = 
-
---constructTree boards@(b:bs) = 
-
-
---minimaxify board = minimaxify . sortBy (compareM) $ (Node (foldl (+) 0 (getScore b)) )
-
-	--	          Node (Val)
-   --NOde B1 Node B2 (Node B3) (Node B4) (Node B5)
 
