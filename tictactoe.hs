@@ -94,6 +94,7 @@ scorify' b = foldl (+) 0 (map scorify b)
 scorify board
     | isNothing (whoWins2 board) = 0
     | whoWins2 board == Just X = -10
+    | whoWins2 board == Just D = 0
     | whoWins2 board == Just O = 10
 
 getBoards _ [] _ = []
@@ -101,12 +102,12 @@ getBoards b (p:ps) pl
     | isNothing (setBoard pl p (Just b)) = getBoards b ps pl
     | otherwise = (setBoard pl p (Just b)):getBoards b ps pl
 
-populateMTL b pl = map (\s -> createTree2 (fromJust s) (opponent pl)) (getBoards b posList (opponent pl))
+populateMTL b pl lvl = map (\s -> createTree2 (fromJust s) (pl) lvl) (getBoards b posList (pl))
 
-createTree2 :: Board -> Player -> MTree
-createTree2 b pl 
-    | isNothing (whoWins2 (Just b)) = (Node b (foldl (+) 0 (map (\(Node _ i _) -> i) (populateMTL b (pl)))) (populateMTL b (pl)))
-    | otherwise = (Node b (scorify' (getBoards b posList (opponent pl))) [Nil])
+createTree2 :: Board -> Player -> Int -> MTree
+createTree2 b pl lvl
+    | isNothing (whoWins2 (Just b)) = (Node b (lvl + (foldl (+) 0 (map (\(Node _ i _) -> i) (populateMTL b (opponent pl) (lvl+1))))) (populateMTL b (opponent pl) (lvl+1)))
+    | otherwise = (Node b (lvl + (scorify (Just b))) [Nil])
 
 getBestMoveList2 (Node _ _ n) = getBestMoveList2Helper n where
 	getBestMoveList2Helper [] = []
@@ -133,7 +134,7 @@ gamify2 board p = do
 			    	    gamify2 (setBoard p (x,y) board) (opponent p)
 			| ((isNothing s) && (p == O)) =
 				do
-					let bestBoard = getTheBoard $ getBestMove $ createTree2 (fromJust board) X
+					let bestBoard = getTheBoard $ getBestMove $ createTree2 (fromJust board) X 0
 					gamify2 bestBoard (opponent p)
 			| s == Just D = putStrLn "Draw!"
 			| otherwise = putStrLn $ "Player " ++ show (fromJust s) ++ " wins!"
