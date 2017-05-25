@@ -94,7 +94,6 @@ scorify' b = foldl (+) 0 (map scorify b)
 scorify board
     | isNothing (whoWins2 board) = 0
     | whoWins2 board == Just X = -10
-    | whoWins2 board == Just D = 0
     | whoWins2 board == Just O = 10
 
 getBoards _ [] _ = []
