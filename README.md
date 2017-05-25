@@ -1,7 +1,7 @@
 # TicTacHSKLL 
 
-Compile using `ghc -O3 tictactoe.hs`.
+Compile using `ghc -O3 tictactoe.hs`
 
-To play PvP run: `./tictactoe -p`.
+To play PvP run: `./tictactoe -p`
 
-To play PvAI run: `./tictactoe -a`.
+To play PvAI run: `./tictactoe -a`
