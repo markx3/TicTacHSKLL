@@ -113,6 +113,7 @@ clear = putStr "\ESC[2J"
 gamify :: Maybe Board -> Player -> IO ()
 gamify board p = do
 	let state = whoWins2 board
+	clearScreen
 	putBoard board
 	playIt state
 	where
