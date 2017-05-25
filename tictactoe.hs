@@ -139,10 +139,12 @@ gamify2 board p = do
 			| s == Just D = putStrLn "Draw!"
 			| otherwise = putStrLn $ "Player " ++ show (fromJust s) ++ " wins!"
 
+
 main :: IO()
 main = do
 	args <- getArgs
 	case args of
 		["-p"] -> gamify emptyBoard X
 		["-a"] -> gamify2 emptyBoard X
+
 
