@@ -102,11 +102,6 @@ getBoards b (p:ps) pl
     | isNothing (setBoard pl p (Just b)) = getBoards b ps pl
     | otherwise = (setBoard pl p (Just b)):getBoards b ps pl
 
--- createTree :: Board -> Player -> MTree
--- createTree b pl 
---     | isNothing (whoWins2 (Just b)) = (Node b (scorify (Just b)) (map (\s -> createTree (fromJust s) (opponent pl)) (getBoards b posList (opponent pl))))
---     | otherwise = (Node b (scorify (Just b) ) [Nil])
-
 populateMTL b pl = map (\s -> createTree2 (fromJust s) (opponent pl)) (getBoards b posList (opponent pl))
 
 createTree2 :: Board -> Player -> MTree
