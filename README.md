@@ -1,4 +1,4 @@
-# TicTacHSKLL 
+# tictacHSKLL 
 
 Compile using `ghc -O3 tictactoe.hs`
 
