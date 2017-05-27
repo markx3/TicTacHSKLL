@@ -9,11 +9,13 @@ import Data.Word
 import Data.Char
 import Data.Maybe
 import qualified Data.Matrix as M
+import System.Random
 import System.Console.ANSI
+import System.IO.Unsafe
 import Numeric (showHex, showIntAtBase)
 
 data Player = O | X | V | D deriving (Eq, Ord)
-type Board = [[Player]] 
+type Board = [[Player]]
 
 instance Show Player where
 	show O = "O"
@@ -65,25 +67,29 @@ posList :: [(Int, Int)]
 posList = [(x,y) | x <- [1..3], y <- [1..3]]
 
 
-scorify :: Num t => Maybe Board -> t
+getScoreRnd a b = unsafePerformIO $ randomRIO (a,b :: Int)
+--scorify :: Num t => Maybe Board -> t
 scorify board
     | isNothing (whoWins2 board) = 0
-    | whoWins2 board == Just X = -10
-    | whoWins2 board == Just D = 0
-    | whoWins2 board == Just O = 10
+    | whoWins2 board == Just X = getScoreRnd (-20) (-10)
+    | whoWins2 board == Just D = getScoreRnd (0) 10
+    | whoWins2 board == Just O = getScoreRnd 10 20
 
 getBoards :: Board -> [(Int, Int)] -> Player -> [Maybe Board]
 getBoards _ [] _ = []
-getBoards b (p:ps) pl 
+getBoards b (p:ps) pl
     | isNothing (setBoard pl p (Just b)) = getBoards b ps pl
     | otherwise = (setBoard pl p (Just b)):getBoards b ps pl
 
 populateMTL :: Board -> Player -> Int -> [MTree]
 populateMTL b pl lvl = map (\s -> createTree2 (fromJust s) (pl) lvl) (getBoards b posList (pl))
 
+calcSoreBelow :: Board -> Player -> Int -> Int
+calcSoreBelow b pl lvl = lvl + foldl (+) 0 (map (\(Node _ i _) -> i) (populateMTL b (opponent pl) (lvl+1)))
+
 createTree2 :: Board -> Player -> Int -> MTree
 createTree2 b pl lvl
-    | isNothing (whoWins2 (Just b)) = (Node b (lvl + (foldl (+) 0 (map (\(Node _ i _) -> i) (populateMTL b (opponent pl) (lvl+1))))) (populateMTL b (opponent pl) (lvl+1)))
+    | isNothing (whoWins2 $ Just b) = (Node b (calcSoreBelow b pl lvl) (populateMTL b (opponent pl) (lvl+1)))
     | otherwise = (Node b (lvl + (scorify (Just b))) [Nil])
 
 createTreeMonadic :: Board -> Player -> Int -> MTree
@@ -118,7 +124,7 @@ gamify board p = do
 	playIt state
 	where
 		playIt s
-		    | isNothing s = 
+		    | isNothing s =
 		    	do
 		    		putStrLn ("Player " ++ show p ++ " turn.")
 			    	x <- prompt "line: "
@@ -137,7 +143,7 @@ gamify2 board p = do
 	playIt state
 	where
 		playIt s
-		    | ((isNothing s) && (p == X)) = 
+		    | ((isNothing s) && (p == X)) =
 		    	do
 		    		putStrLn ("Player " ++ show p ++ " turn.")
 			    	x <- prompt "line: "
