@@ -71,9 +71,9 @@ getScoreRnd a b = unsafePerformIO $ randomRIO (a,b :: Int)
 --scorify :: Num t => Maybe Board -> t
 scorify board
     | isNothing (whoWins2 board) = 0
-    | whoWins2 board == Just X = getScoreRnd (-20) (-10)
-    | whoWins2 board == Just D = getScoreRnd (0) 10
-    | whoWins2 board == Just O = getScoreRnd 10 20
+    | whoWins2 board == Just X = -10
+    | whoWins2 board == Just D = 0
+    | whoWins2 board == Just O = 10
 
 getBoards :: Board -> [(Int, Int)] -> Player -> [Maybe Board]
 getBoards _ [] _ = []
@@ -84,12 +84,20 @@ getBoards b (p:ps) pl
 populateMTL :: Board -> Player -> Int -> [MTree]
 populateMTL b pl lvl = map (\s -> createTree2 (fromJust s) (pl) lvl) (getBoards b posList (pl))
 
-calcSoreBelow :: Board -> Player -> Int -> Int
-calcSoreBelow b pl lvl = lvl + foldl (+) 0 (map (\(Node _ i _) -> i) (populateMTL b (opponent pl) (lvl+1)))
+adjustLocalScore pl sl
+	| pl == O = maximum sl
+	| pl == X = minimum sl
+
+calcScoreBelow :: Board -> Player -> Int -> Int
+calcScoreBelow b pl lvl = lvl + foldl (+) 0 (map (\(Node _ i _) -> i) (populateMTL b (opponent pl) (lvl+1)))
+
+calcScoreBelow2 :: Board -> Player -> Int -> Int
+calcScoreBelow2 b pl lvl = lvl + adjustLocalScore (opponent pl) (map (\(Node _ i _) -> i) (populateMTL b (opponent pl) (lvl+1)))
 
 createTree2 :: Board -> Player -> Int -> MTree
 createTree2 b pl lvl
-    | isNothing (whoWins2 $ Just b) = (Node b (calcSoreBelow b pl lvl) (populateMTL b (opponent pl) (lvl+1)))
+    | isNothing (whoWins2 $ Just b) =
+		(Node b (calcScoreBelow2 b pl lvl) (populateMTL b (opponent pl) (lvl+1)))
     | otherwise = (Node b (lvl + (scorify (Just b))) [Nil])
 
 createTreeMonadic :: Board -> Player -> Int -> MTree
@@ -101,12 +109,17 @@ createTreeMonadic b pl lvl = do
 		(Node b (lvl + (scorify (Just b))) [Nil])
 
 getBestMoveList2 :: MTree -> [(Board, Int)]
-getBestMoveList2 (Node _ _ n) = getBestMoveList2Helper n where
-	getBestMoveList2Helper [] = []
-	getBestMoveList2Helper ((Node b i _):ms) = (b, i):getBestMoveList2Helper ms
+getBestMoveList2 (Node _ _ n) = onlyTheBest (getBestMoveList2Helper n) ((\(_,x)->x) $ (maximumBy (comparing snd) (getBestMoveList2Helper n)))
+	where
+		getBestMoveList2Helper [] = []
+		getBestMoveList2Helper ((Node b i _):ms) = (b, i):getBestMoveList2Helper ms
+		onlyTheBest [] _ = []
+		onlyTheBest ((b,i):bs) mx
+			| i < mx = onlyTheBest bs mx
+			| otherwise = (b,i):onlyTheBest bs mx
 
 getBestMove :: MTree -> (Board, Int)
-getBestMove mt = (maximumBy (comparing snd) $ getBestMoveList2 mt)
+getBestMove mt = (getBestMoveList2 mt) !! (getScoreRnd 0 ((length (getBestMoveList2 mt))-1))
 
 getTheBoard :: (a, t) -> Maybe a
 getTheBoard (b, i) = Just b
