@@ -66,9 +66,10 @@ data MTree = Nil
 posList :: [(Int, Int)]
 posList = [(x,y) | x <- [1..3], y <- [1..3]]
 
-
+getScoreRnd :: Int -> Int -> Int
 getScoreRnd a b = unsafePerformIO $ randomRIO (a,b :: Int)
---scorify :: Num t => Maybe Board -> t
+
+scorify :: Num t => Maybe Board -> t
 scorify board
     | isNothing (whoWins2 board) = 0
     | whoWins2 board == Just X = -10
@@ -84,10 +85,12 @@ getBoards b (p:ps) pl
 populateMTL :: Board -> Player -> Int -> [MTree]
 populateMTL b pl lvl = map (\s -> createTree2 (fromJust s) (pl) lvl) (getBoards b posList (pl))
 
+adjustLocalScore :: (Foldable t, Ord a) => Player -> t a -> a
 adjustLocalScore pl sl
 	| pl == O = maximum sl
 	| pl == X = minimum sl
 
+-- deprecated
 calcScoreBelow :: Board -> Player -> Int -> Int
 calcScoreBelow b pl lvl = lvl + foldl (+) 0 (map (\(Node _ i _) -> i) (populateMTL b (opponent pl) (lvl+1)))
 
@@ -123,9 +126,6 @@ getBestMove mt = (getBestMoveList2 mt) !! (getScoreRnd 0 ((length (getBestMoveLi
 
 getTheBoard :: (a, t) -> Maybe a
 getTheBoard (b, i) = Just b
-
-clear :: IO ()
-clear = putStr "\ESC[2J"
 
 ----------------- MAIN FUNCTIONS
 
@@ -166,13 +166,13 @@ gamify2 board p = do
 			    	    gamify2 (setBoard p (x,y) board) (opponent p)
 			| ((isNothing s) && (p == O)) =
 				do
-					--putStrLn (show (getBestMove $ createTreeMonadic (fromJust board) X 0))
 					let bestBoard = getTheBoard $ getBestMove $ createTree2 (fromJust board) X 0
 					gamify2 bestBoard (opponent p)
 			| s == Just D = do {putStrLn "Draw!"; rematch (p)}
 			| (whoWins2 board == Just O) = do {putStrLn "The machine shall reign over you!\n"; rematch (p)}
 			| otherwise = do {putStrLn $ "Congratulations! You beat the machine."; rematch (p)}
 
+rematch :: Player -> IO ()
 rematch p = do {putStrLn "Want a rematch? [y/n]"; opt <- getLine; case opt of
 				['y'] -> gamify2 emptyBoard p
 				otherwise -> exitSuccess}
