@@ -8,6 +8,7 @@ import Data.List.Split
 import Data.Word
 import Data.Char
 import Data.Maybe
+import Control.Applicative
 import qualified Data.Matrix as M
 import System.Random
 import System.Console.ANSI
@@ -24,7 +25,7 @@ instance Show Player where
 	show D = "D"
 
 whoWins2 :: Maybe Board -> Maybe Player
-whoWins2 board = listToMaybe $ filter (/=V) [lin $ fromJust board, lin (transpose $ fromJust board), diag $ fromJust board]
+whoWins2 board = listToMaybe . filter (/= V) $ [lin $ fromJust board, lin (transpose $ fromJust board), diag $ fromJust board]
     where
         lin [] = V
         lin (b@[a,_,_]:bs) = if (all (==a) b && a /= V) then a else lin bs
@@ -34,8 +35,10 @@ whoWins2 board = listToMaybe $ filter (/=V) [lin $ fromJust board, lin (transpos
             | all (==True) (map (all (/=V)) b) = D
             | otherwise = V
 
+
+
 putBoard :: Maybe Board -> IO()
-putBoard b = putStrLn . M.prettyMatrix $ M.fromLists $ fromJust b
+putBoard b = putStrLn . M.prettyMatrix . M.fromLists $ fromJust b
 
 setBoard :: Player -> (Int, Int) -> Maybe Board -> Maybe Board
 setBoard v (x,y) b = setBoardHelper v (x,y) $ M.fromLists $ fromJust b where
@@ -50,10 +53,7 @@ emptyBoard = Just ( [ [V, V, V],
                       [V, V, V] ] )
 
 prompt :: String -> IO Int
-prompt s = do
-	--putStr s
-	line <- getLine
-	return (read line :: Int)
+prompt s = getLine >>= (\x -> return (read x :: Int))
 
 opponent :: Player -> Player
 opponent X = O
@@ -95,13 +95,14 @@ calcScoreBelow :: Board -> Player -> Int -> Int
 calcScoreBelow b pl lvl = lvl + foldl (+) 0 (map (\(Node _ i _) -> i) (populateMTL b (opponent pl) (lvl+1)))
 
 calcScoreBelow2 :: Board -> Player -> Int -> Int
-calcScoreBelow2 b pl lvl = lvl + adjustLocalScore (opponent pl) (map (\(Node _ i _) -> i) (populateMTL b (opponent pl) (lvl+1)))
+calcScoreBelow2 b pl lvl = adjustLocalScore (opponent pl) (map (\(Node _ i _) -> i) (populateMTL b (opponent pl) (lvl+1)))
 
 createTree2 :: Board -> Player -> Int -> MTree
 createTree2 b pl lvl
     | isNothing (whoWins2 $ Just b) =
 		(Node b (calcScoreBelow2 b pl lvl) (populateMTL b (opponent pl) (lvl+1)))
-    | otherwise = (Node b (lvl + (scorify (Just b))) [Nil])
+    | otherwise = (Node b ((scorify (Just b))) [Nil])
+
 
 createTreeMonadic :: Board -> Player -> Int -> MTree
 createTreeMonadic b pl lvl = do
@@ -121,8 +122,13 @@ getBestMoveList2 (Node _ _ n) = onlyTheBest (getBestMoveList2Helper n) ((\(_,x)-
 			| i < mx = onlyTheBest bs mx
 			| otherwise = (b,i):onlyTheBest bs mx
 
+isItFinal :: Num t => [(Board, t)] -> [(Board, t)]
+isItFinal [] = []
+isItFinal ((b,i):bs) | (whoWins2 $ Just b) == Just O = [(b,999)]
+					 | otherwise = (b,i):isItFinal bs
+
 getBestMove :: MTree -> (Board, Int)
-getBestMove mt = (getBestMoveList2 mt) !! (getScoreRnd 0 ((length (getBestMoveList2 mt))-1))
+getBestMove mt = maximumBy (comparing snd) $ isItFinal $ getBestMoveList2 mt
 
 getTheBoard :: (a, t) -> Maybe a
 getTheBoard (b, i) = Just b
@@ -166,7 +172,7 @@ gamify2 board p = do
 			    	    gamify2 (setBoard p (x,y) board) (opponent p)
 			| ((isNothing s) && (p == O)) =
 				do
-					let bestBoard = getTheBoard $ getBestMove $ createTree2 (fromJust board) X 0
+					let bestBoard = getTheBoard . getBestMove $ createTree2 (fromJust board) X 0
 					gamify2 bestBoard (opponent p)
 			| s == Just D = do {putStrLn "Draw!"; rematch (p)}
 			| (whoWins2 board == Just O) = do {putStrLn "The machine shall reign over you!\n"; rematch (p)}
