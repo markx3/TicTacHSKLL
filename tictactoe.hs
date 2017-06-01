@@ -70,25 +70,22 @@ getScoreRnd :: Int -> Int -> Int
 getScoreRnd a b = unsafePerformIO $ randomRIO (a,b :: Int)
 
 scorify :: Num t => Maybe Board -> t
-scorify board
-    | isNothing (whoWins2 board) = 0
-    | whoWins2 board == Just X = -10
-    | whoWins2 board == Just D = 0
-    | whoWins2 board == Just O = 10
+scorify board | isNothing (whoWins2 board) = 0
+              | whoWins2 board == Just X = -10
+              | whoWins2 board == Just D = 0
+              | whoWins2 board == Just O = 10
 
 getBoards :: Board -> [(Int, Int)] -> Player -> [Maybe Board]
 getBoards _ [] _ = []
-getBoards b (p:ps) pl
-    | isNothing (setBoard pl p (Just b)) = getBoards b ps pl
-    | otherwise = (setBoard pl p (Just b)):getBoards b ps pl
+getBoards b (p:ps) pl | isNothing (setBoard pl p (Just b)) = getBoards b ps pl
+                      | otherwise = (setBoard pl p (Just b)):getBoards b ps pl
 
 populateMTL :: Board -> Player -> Int -> [MTree]
 populateMTL b pl lvl = map (\s -> createTree2 (fromJust s) (pl) lvl) (getBoards b posList (pl))
 
 adjustLocalScore :: (Foldable t, Ord a) => Player -> t a -> a
-adjustLocalScore pl sl
-	| pl == O = maximum sl
-	| pl == X = minimum sl
+adjustLocalScore pl sl | pl == O = maximum sl
+                       | pl == X = minimum sl
 
 -- deprecated
 calcScoreBelow :: Board -> Player -> Int -> Int
@@ -98,10 +95,10 @@ calcScoreBelow2 :: Board -> Player -> Int -> Int
 calcScoreBelow2 b pl lvl = adjustLocalScore (opponent pl) (map (\(Node _ i _) -> i) (populateMTL b (opponent pl) (lvl+1)))
 
 createTree2 :: Board -> Player -> Int -> MTree
-createTree2 b pl lvl
-    | isNothing (whoWins2 $ Just b) =
-		(Node b (calcScoreBelow2 b pl lvl) (populateMTL b (opponent pl) (lvl+1)))
-    | otherwise = (Node b ((scorify (Just b))) [Nil])
+createTree2 b pl lvl | isNothing (whoWins2 $ Just b) =
+		                   (Node b (calcScoreBelow2 b pl lvl)
+						   (populateMTL b (opponent pl) (lvl+1)))
+                     | otherwise = (Node b ((scorify (Just b))) [Nil])
 
 
 createTreeMonadic :: Board -> Player -> Int -> MTree
@@ -118,9 +115,8 @@ getBestMoveList2 (Node _ _ n) = onlyTheBest (getBestMoveList2Helper n) ((\(_,x)-
 		getBestMoveList2Helper [] = []
 		getBestMoveList2Helper ((Node b i _):ms) = (b, i):getBestMoveList2Helper ms
 		onlyTheBest [] _ = []
-		onlyTheBest ((b,i):bs) mx
-			| i < mx = onlyTheBest bs mx
-			| otherwise = (b,i):onlyTheBest bs mx
+		onlyTheBest ((b,i):bs) mx | i < mx = onlyTheBest bs mx
+			                      | otherwise = (b,i):onlyTheBest bs mx
 
 isItFinal :: Num t => [(Board, t)] -> [(Board, t)]
 isItFinal [] = []
